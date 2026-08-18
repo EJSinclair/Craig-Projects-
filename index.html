@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fit Type</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #ffffff;
+        overflow: hidden;
+      }
+      * {
+        box-sizing: border-box;
+      }
+
+      #stage {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6vh 4vw;
+        cursor: text;
+      }
+
+      #editor {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        overflow: visible;
+      }
+
+      #text {
+        outline: none;
+        border: none;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
+          sans-serif;
+        font-weight: 700;
+        color: #111111;
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-width: 100%;
+        overflow: visible;
+      }
+
+      #text:empty::before {
+        content: attr(data-placeholder);
+        color: #cccccc;
+      }
+
+      /* hidden measurer, mirrors #text exactly */
+      #measurer {
+        position: absolute;
+        visibility: hidden;
+        left: -9999px;
+        top: -9999px;
+
+        white-space: pre-wrap;
+        word-break: break-word;
+
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
+          sans-serif;
+        font-weight: 700;
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <div id="editor">
+        <div
+          id="text"
+          contenteditable="true"
+          data-placeholder="Type here…"
+        ></div>
+      </div>
+    </div>
+    <div id="measurer"></div>
+
+    <script>
+      const text = document.getElementById("text");
+      const measurer = document.getElementById("measurer");
+      const stage = document.getElementById("stage");
+
+      const MIN_SIZE = 12;
+      const MAX_SIZE = 300;
+
+      function availableBox() {
+        const styles = getComputedStyle(stage);
+
+        const paddingLeft = parseFloat(styles.paddingLeft);
+        const paddingRight = parseFloat(styles.paddingRight);
+        const paddingTop = parseFloat(styles.paddingTop);
+        const paddingBottom = parseFloat(styles.paddingBottom);
+
+        return {
+          width: stage.clientWidth - paddingLeft - paddingRight,
+          height: stage.clientHeight - paddingTop - paddingBottom,
+        };
+      }
+
+      function fits(size, content, box) {
+        measurer.style.fontSize = size + "px";
+        measurer.style.width = box.width + "px";
+        measurer.style.height = "auto";
+        measurer.textContent = content;
+
+        const rect = measurer.getBoundingClientRect();
+
+        // Give the font a little breathing room so glyphs don't get clipped
+        const verticalBuffer = size * 0.4;
+
+        return (
+          rect.width <= box.width && rect.height + verticalBuffer <= box.height
+        );
+      }
+
+      function fitText() {
+        const content = text.innerText.trim();
+        const box = availableBox();
+
+        if (!content) {
+          text.style.fontSize = Math.min(MAX_SIZE, box.height) + "px";
+          return;
+        }
+
+        let lo = MIN_SIZE;
+        let hi = MAX_SIZE;
+        let best = MIN_SIZE;
+
+        while (lo <= hi) {
+          const mid = Math.floor((lo + hi) / 2);
+
+          if (fits(mid, content, box)) {
+            best = mid;
+            lo = mid + 1;
+          } else {
+            hi = mid - 1;
+          }
+        }
+
+        text.style.fontSize = best + "px";
+      }
+
+      text.addEventListener("input", fitText);
+      window.addEventListener("resize", fitText);
+
+      stage.addEventListener("click", () => {
+        text.focus();
+      });
+
+      fitText();
+      text.focus();
+    </script>
+  </body>
+</html>
